@@ -379,13 +379,13 @@ with center:
     
     st.markdown("### 3D Getfert Model")
 
-components.iframe(
+    components.iframe(
     "https://lelelit.github.io/Getfert-energy-dashboard/assets/index.html",
     height=500,
     scrolling=False
 )
 
-st.markdown("### Demand vs Renewable Supply")
+    st.markdown("### Demand vs Renewable Supply")
 
 # ============================================================
 # FULL TABLE
