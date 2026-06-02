@@ -76,7 +76,7 @@
 
       <h1>About</h1>
       <div id="about"><img src="./Qgis2threejs.png">
-        This page was made with <a href="https://www.qgis.org/">QGIS</a> and <a href="https://github.com/minorua/Qgis2threejs">Qgis2threejs</a> plugin (version 2.8).
+        This page was made with <a href="https://www.qgis.org/">QGIS</a> and <a href="https://github.com/minorua/Qgis2threejs">Qgis2threejs</a> plugin (version 2.10.2).
         <div>Powered by <a href="https://threejs.org/">three.js</a>
         <span id="lib_proj4js"> and <a href="https://trac.osgeo.org/proj4js/">Proj4js</a></span>.</div>
       </div>
@@ -112,7 +112,6 @@
 </div>
 
 <script>
-Q3D.Config.allVisible = true;
 
 
 var container = document.getElementById("view"),
@@ -126,7 +125,7 @@ app.loadSceneFile("./data/index/scene.json", function (scene) {
   // scene file has been loaded
   app.start();
 }, function (scene) {
-  // all relevant files have been loaded
+  // all associated files have been loaded
 
 });
 </script>

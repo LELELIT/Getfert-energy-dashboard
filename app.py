@@ -1,5 +1,5 @@
-import streamlit.components.v1 as components
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from pathlib import Path
 import plotly.graph_objects as go
@@ -10,9 +10,26 @@ import plotly.express as px
 # ============================================================
 
 st.set_page_config(
-    page_title="Getfert 2046 Scenario Dashboard",
+    page_title="Getfert 2046 Energy Sufficiency Dashboard",
     layout="wide"
 )
+
+# ============================================================
+# STYLE
+# ============================================================
+
+st.markdown("""
+<style>
+.card {
+    background-color: white;
+    padding: 15px;
+    border-radius: 12px;
+    border: 0px solid #E0E0E0;
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.05);
+    margin-bottom: 12px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ============================================================
 # LOAD DATA
@@ -29,34 +46,21 @@ df.columns = (
     .str.replace(" ", "_")
 )
 
-df = df.rename(columns={
-    df.columns[1]: "population_state",
-    df.columns[2]: "energy_transition_state",
-    df.columns[3]: "green_state"
-})
-
 numeric_cols = [
-    "population_multiplier",
-    "solar_adoption",
-    "heatpump_adoption",
-    "ev_adoption",
-    "electricity_demand_gwh",
-    "heating_demand_gwh",
-    "ev_demand_gwh",
-    "total_demand_gwh",
-    "solar_supply_gwh",
-    "energy_balance_gwh",
-    "renewable_coverage_percent",
-    "energy_gap_gwh",
-    "additional_solar_required_gwh",
-    "additional_rooftop_or_canopy_percent"
+    "population_multiplier", "heatpump_adoption", "ev_adoption",
+    "electricity_demand_gwh", "heating_demand_gwh", "ev_demand_gwh",
+    "total_demand_gwh", "rooftop_supply_gwh", "parking_supply_gwh",
+    "wind_supply_gwh", "green_space_supply_gwh", "total_supply_gwh",
+    "energy_balance_gwh", "renewable_coverage_percent",
+    "rooftop_use_percent", "parking_use_percent", "wind_use_percent",
+    "green_space_use_percent", "living_environment_score",
+    "x_population", "y_energy", "z_green", "intervention_stage"
 ]
 
 for col in numeric_cols:
     if col in df.columns:
         df[col] = (
-            df[col]
-            .astype(str)
+            df[col].astype(str)
             .str.replace(",", ".", regex=False)
             .str.strip()
         )
@@ -70,30 +74,59 @@ population_map = {"Decrease": 0, "Stable": 1, "Increase": 2}
 energy_map = {"Slow": 0, "Moderate": 1, "Rapid": 2}
 green_map = {"Minimal": 0, "Moderate": 1, "Extensive": 2}
 
-df["x_population"] = df["population_state"].map(population_map)
-df["y_energy"] = df["energy_transition_state"].map(energy_map)
-df["z_green"] = df["green_state"].map(green_map)
+if "x_population" not in df.columns:
+    df["x_population"] = df["population_state"].map(population_map)
+
+if "y_energy" not in df.columns:
+    df["y_energy"] = df["energy_transition_state"].map(energy_map)
+
+if "z_green" not in df.columns:
+    df["z_green"] = df["green_state"].map(green_map)
+
+# ============================================================
+# MAXIMUM INTERVENTION POTENTIALS
+# ============================================================
+
+ROOFTOP_MAX = 6.37
+PARKING_MAX = 2.80
+WIND_MAX = 4.536
+GREEN_SOLAR_MAX = 1.93
 
 # ============================================================
 # HEADER
 # ============================================================
+st.markdown("""
+<div style="
+    font-family:'Segoe UI', Arial, sans-serif;
+    font-size:24px;
+    font-weight:700;
+    color:white;
+    background:#1F4E79;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+    margin-bottom:20px;
+">
+Decision Support Tool for Energy-Sufficient Neighbourhood Planning
+</div>
 
-st.caption("Getfert neighbourhood — Energy self-sufficiency 2046")
-
+<div style="
+    font-family:'Segoe UI', Arial, sans-serif;
+    font-size:16px;
+    color:#555555;
+    text-align:center;
+    margin-bottom:20px;
+">
+Test future population, electrification, and green-transformation scenarios and evaluate renewable-energy intervention pathways for Getfert 2046.
+</div>
+""", unsafe_allow_html=True)
 # ============================================================
-# THREE-PANEL LAYOUT
+# MAIN LAYOUT
 # ============================================================
 
-left, center, right = st.columns([1.15, 3.8, 1.25])
-
-# ============================================================
-# LEFT PANEL: SCENARIO CONTROLS
-# ============================================================
-
+left, center, right = st.columns([1.15, 3.5, 1.35])
 with left:
-    st.markdown("### Scenario Dashboard")
-
-    st.markdown("#### Population & settlement")
+    st.markdown("### Scenario Controls")
 
     population = st.selectbox(
         "Population scenario",
@@ -101,31 +134,84 @@ with left:
     )
 
     energy = st.selectbox(
-        "Energy transition scenario",
+        "Electrification scenario",
         ["Slow", "Moderate", "Rapid"]
     )
 
     green = st.selectbox(
-        "Green transformation scenario",
+        "Green transformation",
         ["Minimal", "Moderate", "Extensive"]
     )
 
+    # --------------------------------------------------
+    # GREEN TRANSFORMATION RULES
+    # --------------------------------------------------
+
+    if green == "Minimal":
+
+        max_wind = 100
+        max_green_solar = 100
+
+        default_wind = 50
+        default_green_solar = 50
+
+    elif green == "Moderate":
+
+        max_wind = 100
+        max_green_solar = 50
+
+        default_wind = 30
+        default_green_solar = 20
+
+    else:  # Extensive
+
+        max_wind = 75
+        max_green_solar = 0
+
+        default_wind = 20
+        default_green_solar = 0
+
     st.markdown("---")
+    st.markdown("### Policy Intervention Controls")
 
-    st.markdown("#### Scenario meaning")
+    roof_pct = st.slider(
+        "Rooftop solar adoption (%)",
+        0, 100, 100, 5
+    )
 
-    st.write(f"**Population:** {population}")
-    st.write(f"**Energy transition:** {energy}")
-    st.write(f"**Green transformation:** {green}")
+    parking_pct = st.slider(
+        "Parking canopy solar adoption (%)",
+        0, 100, 100, 5
+    )
 
-    st.markdown("---")
+    wind_pct = st.slider(
+        "Small wind turbine adoption (%)",
+        0,
+        max_wind,
+        default_wind,
+        5
+    )
 
-    st.markdown("#### Scenario cube tags")
+    if max_green_solar == 0:
+        green_solar_pct = 0
 
-    st.info(
-        f"Population: {population}\n\n"
-        f"Energy: {energy}\n\n"
-        f"Green: {green}"
+        st.info(
+            "Green-space solar conversion is disabled under Extensive green transformation "
+            "to protect public green space, biodiversity, and cooling benefits."
+        )
+
+    else:
+        green_solar_pct = st.slider(
+            "Green-space solar conversion (%)",
+            0,
+            max_green_solar,
+            default_green_solar,
+            5
+        )
+
+    st.caption(
+        f"Green policy limits: Wind ≤ {max_wind}% | "
+        f"Green-space solar ≤ {max_green_solar}%"
     )
 
 # ============================================================
@@ -139,22 +225,69 @@ selected = df[
 ]
 
 if selected.empty:
-    st.error("No matching scenario found. Check scenario names in CSV.")
+    st.error("No matching scenario found. Check the CSV names.")
     st.stop()
 
 scenario = selected.iloc[0]
+green_state = scenario["green_state"]
+
+if green_state == "Minimal":
+    max_green_solar = 100
+    max_wind = 100
+
+elif green_state == "Moderate":
+    max_green_solar = 50
+    max_wind = 100
+
+elif green_state == "Extensive":
+    max_green_solar = 0
+    max_wind = 75
 
 # ============================================================
-# CENTER PANEL: CUBE + CHARTS
+# DYNAMIC POLICY SUPPLY CALCULATIONS
+# ============================================================
+
+rooftop_supply = ROOFTOP_MAX * (roof_pct / 100)
+parking_supply = PARKING_MAX * (parking_pct / 100)
+wind_supply = WIND_MAX * (wind_pct / 100)
+green_space_supply = GREEN_SOLAR_MAX * (green_solar_pct / 100)
+
+policy_total_supply = (
+    rooftop_supply +
+    parking_supply +
+    wind_supply +
+    green_space_supply
+)
+
+policy_energy_balance = policy_total_supply - scenario["total_demand_gwh"]
+
+policy_coverage = (
+    policy_total_supply / scenario["total_demand_gwh"]
+) * 100
+
+living_impact_score = (
+    (parking_pct * 0.01) +
+    (wind_pct * 0.02) +
+    (green_solar_pct * 0.05)
+)
+
+if living_impact_score < 2:
+    living_class = "Low impact"
+elif living_impact_score < 5:
+    living_class = "Moderate impact"
+else:
+    living_class = "High impact"
+
+# ============================================================
+# CENTER PANEL — CUBE + CHARTS
 # ============================================================
 
 with center:
-    st.markdown("### Scenario Cube")
+    st.markdown("### 27-Scenario Cube")
 
-    fig = go.Figure()
+    fig_cube = go.Figure()
 
-    # All 27 scenarios
-    fig.add_trace(go.Scatter3d(
+    fig_cube.add_trace(go.Scatter3d(
         x=df["x_population"],
         y=df["y_energy"],
         z=df["z_green"],
@@ -163,32 +296,30 @@ with center:
         textposition="top center",
         showlegend=False,
         marker=dict(
-            size=7,
-            color=df["renewable_coverage_percent"],
-            colorscale="Viridis",
-            colorbar=dict(title="Coverage (%)"),
-            opacity=0.85
-        ),
-        hovertemplate=
-            "Scenario: %{text}<br>" +
-            "Population: %{customdata[0]}<br>" +
-            "Energy: %{customdata[1]}<br>" +
-            "Green: %{customdata[2]}<br>" +
-            "Coverage: %{customdata[3]:.1f}%<br>" +
-            "Balance: %{customdata[4]:.2f} GWh<extra></extra>",
+    size=7,
+    color=df["total_demand_gwh"],
+    colorscale="YlOrRd",
+    colorbar=dict(title="Demand<br>(GWh/yr)"),
+    opacity=0.88
+),
         customdata=df[
             [
                 "population_state",
                 "energy_transition_state",
                 "green_state",
-                "renewable_coverage_percent",
+                "total_demand_gwh",
                 "energy_balance_gwh"
             ]
-        ]
+        ],
+        hovertemplate=
+            "Scenario: %{text}<br>" +
+            "Population: %{customdata[0]}<br>" +
+            "Electrification: %{customdata[1]}<br>" +
+            "Green: %{customdata[2]}<br>" +
+            "Future demand: %{customdata[3]:.2f} GWh/yr<extra></extra>"
     ))
 
-    # Selected scenario marker
-    fig.add_trace(go.Scatter3d(
+    fig_cube.add_trace(go.Scatter3d(
         x=[scenario["x_population"]],
         y=[scenario["y_energy"]],
         z=[scenario["z_green"]],
@@ -197,15 +328,14 @@ with center:
         textposition="bottom center",
         showlegend=False,
         marker=dict(
-            size=12,
-            color="red",
+            size=8,
+            color="blue",
             symbol="diamond"
-        ),
-        hovertemplate="Selected scenario<extra></extra>"
+        )
     ))
 
-    fig.update_layout(
-        height=500,
+    fig_cube.update_layout(
+        height=420,
         scene=dict(
             xaxis=dict(
                 title="Population",
@@ -213,7 +343,7 @@ with center:
                 ticktext=["Decrease", "Stable", "Increase"]
             ),
             yaxis=dict(
-                title="Energy transition",
+                title="Electrification",
                 tickvals=[0, 1, 2],
                 ticktext=["Slow", "Moderate", "Rapid"]
             ),
@@ -223,173 +353,181 @@ with center:
                 ticktext=["Minimal", "Moderate", "Extensive"]
             )
         ),
-        margin=dict(l=0, r=0, b=0, t=20)
+        margin=dict(l=0, r=0, b=0, t=15)
     )
 
-    st.plotly_chart(fig, use_container_width=True, key="scenario_cube_chart")
+    st.plotly_chart(fig_cube, use_container_width=True, key="scenario_cube")
 
-    st.markdown("### Demand vs Renewable Supply")
+    chart_left, chart_right = st.columns(2)
 
-    chart_df = pd.DataFrame({
-        "Metric": ["Total demand", "Renewable supply"],
-        "GWh/year": [
-            scenario["total_demand_gwh"],
-            scenario["solar_supply_gwh"]
-        ]
-    })
+    with chart_left:
+        st.markdown("### Demand Breakdown")
 
-    fig_bar = px.bar(
-        chart_df,
-        x="Metric",
-        y="GWh/year",
-        text="GWh/year",
-        title="Selected scenario energy balance"
-    )
+        demand_df = pd.DataFrame({
+            "Demand source": [
+                "Electricity",
+                "Heating electrification",
+                "EV mobility"
+            ],
+            "GWh/year": [
+                scenario["electricity_demand_gwh"],
+                scenario["heating_demand_gwh"],
+                scenario["ev_demand_gwh"]
+            ]
+        })
 
-    fig_bar.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-    fig_bar.update_layout(height=360)
+        fig_demand = px.bar(
+            demand_df,
+            x="Demand source",
+            y="GWh/year",
+            text="GWh/year",
+            title="Demand drivers"
+        )
 
-    st.plotly_chart(fig_bar, use_container_width=True, key="demand_supply_chart")
+        fig_demand.update_traces(
+            texttemplate="%{text:.2f}",
+            textposition="outside"
+        )
+
+        fig_demand.update_layout(
+            height=300,
+            margin=dict(l=5, r=5, t=40, b=5)
+        )
+
+        st.plotly_chart(fig_demand, use_container_width=True, key="demand_breakdown")
+
+    with chart_right:
+        st.markdown("### Policy Supply Mix")
+
+        supply_df = pd.DataFrame({
+            "Supply source": [
+                "Rooftop solar",
+                "Parking canopies",
+                "Small wind turbines",
+                "Green-space solar"
+            ],
+            "GWh/year": [
+                rooftop_supply,
+                parking_supply,
+                wind_supply,
+                green_space_supply
+            ]
+        })
+
+        fig_supply = px.bar(
+            supply_df,
+            x="Supply source",
+            y="GWh/year",
+            text="GWh/year",
+            title="User-selected supply interventions"
+        )
+
+        fig_supply.update_traces(
+            texttemplate="%{text:.2f}",
+            textposition="outside"
+        )
+
+        fig_supply.update_layout(
+            height=300,
+            margin=dict(l=5, r=5, t=40, b=5)
+        )
+
+        st.plotly_chart(fig_supply, use_container_width=True, key="policy_supply_breakdown")
 
 # ============================================================
-# RIGHT PANEL: NUMERICAL RESULTS
+# RIGHT PANEL — DYNAMIC KPI RESULTS
 # ============================================================
 
 with right:
-    st.markdown("### Numerical Results")
+    st.markdown("### Selected Scenario")
 
-    st.markdown(f"**Selected scenario:** `{scenario['scenario_id']}`")
-
-    st.metric(
-        "Energy supply",
-        f"{scenario['solar_supply_gwh']:.2f} GWh/yr"
+    st.success(
+        f"{scenario['scenario_id']} | "
+        f"{scenario['population_state']} | "
+        f"{scenario['energy_transition_state']} | "
+        f"{scenario['green_state']}"
     )
 
     st.metric(
-        "Energy demand",
+        "Total demand",
         f"{scenario['total_demand_gwh']:.2f} GWh/yr"
     )
 
     st.metric(
-        "Net balance",
-        f"{scenario['energy_balance_gwh']:.2f} GWh/yr"
+        "Policy supply",
+        f"{policy_total_supply:.2f} GWh/yr"
+    )
+
+    st.metric(
+        "Policy balance",
+        f"{policy_energy_balance:.2f} GWh/yr"
     )
 
     st.metric(
         "Renewable coverage",
-        f"{scenario['renewable_coverage_percent']:.1f}%"
+        f"{policy_coverage:.1f}%"
     )
 
     st.markdown("---")
+    st.markdown("### Intervention impact on theLiving Environment")
 
-    st.markdown("#### Energy Gap")
-
-    if "energy_gap_gwh" in df.columns:
-        st.metric(
-            "Energy gap",
-            f"{scenario['energy_gap_gwh']:.2f} GWh/yr"
-        )
-
-    if "additional_solar_required_gwh" in df.columns:
-        st.metric(
-            "Additional solar needed",
-            f"{scenario['additional_solar_required_gwh']:.2f} GWh/yr"
-        )
-
-    if "additional_rooftop_or_canopy_percent" in df.columns:
-        st.metric(
-            "Extra rooftop/canopy use",
-            f"{scenario['additional_rooftop_or_canopy_percent']:.1f}%"
-        )
-
-    st.markdown("---")
-
-    st.markdown("#### Health & Environment")
-
-    st.write(f"**Resilience:** {scenario['resilience_class']}")
-    st.write(f"**Health class:** {scenario['health_environment_class']}")
-
-    st.markdown("---")
-
-    st.markdown("#### Recommended Action")
-
-    if "recommended_intervention" in df.columns:
-        st.info(scenario["recommended_intervention"])
+    st.write(f"**Impact score:** {living_impact_score:.2f}")
+    st.write(f"**Impact class:** {living_class}")
 
 # ============================================================
-# LOWER DASHBOARD SECTION
+# RECOMMENDATION + INTERPRETATION
 # ============================================================
 
 st.markdown("---")
 
-bottom_left, bottom_right = st.columns([1.4, 1])
+col_rec, col_interp = st.columns([1, 1])
 
-with bottom_left:
-    st.markdown("### Top Performing Scenarios")
+with col_rec:
+    st.markdown("### Policy Result")
 
-    top_df = df.sort_values(
-        by="renewable_coverage_percent",
-        ascending=False
-    ).head(5)
-
-    fig_top = px.bar(
-        top_df,
-        x="renewable_coverage_percent",
-        y="scenario_id",
-        orientation="h",
-        text="renewable_coverage_percent",
-        title="Top 5 scenarios by renewable coverage"
-    )
-
-    fig_top.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
-    fig_top.update_layout(
-        yaxis=dict(autorange="reversed"),
-        xaxis_title="Renewable coverage (%)",
-        yaxis_title="Scenario",
-        height=360
-    )
-
-    st.plotly_chart(fig_top, use_container_width=True, key="top_scenarios_chart")
-
-with bottom_right:
-    st.markdown("### Selected Scenario Interpretation")
-
-    st.success(
-        f"{scenario['scenario_id']} combines "
-        f"**{scenario['population_state']} population**, "
-        f"**{scenario['energy_transition_state']} energy transition**, and "
-        f"**{scenario['green_state']} green transformation**."
-    )
-
-    if scenario["energy_balance_gwh"] < 0:
+    if policy_energy_balance >= 0:
+        st.success("This policy mix achieves local energy sufficiency.")
+    else:
         st.warning(
-            "This scenario has an energy deficit. Additional renewable production, "
-            "storage, or demand-reduction strategies are needed."
+            f"This policy mix leaves a deficit of {abs(policy_energy_balance):.2f} GWh/yr."
+        )
+
+with col_interp:
+    st.markdown("### Energy + Health Interpretation")
+
+    if green_solar_pct > 0:
+        st.error(
+            "Green-space solar improves energy supply but may reduce recreation space, biodiversity and urban cooling."
+        )
+    elif wind_pct > 0:
+        st.warning(
+            "Small wind turbines help close the gap but may create visual and noise concerns."
+        )
+    elif parking_pct > 0:
+        st.info(
+            "Parking canopies provide energy, shade and support EV charging infrastructure."
         )
     else:
         st.success(
-            "This scenario produces enough renewable energy to meet or exceed demand."
+            "Rooftop solar has the lowest spatial and health trade-off."
         )
-        st.markdown("### 3D Getfert Model")
-#===========================================================
-#3D MODEL DISPLAY
-#===========================================================
 
+# ============================================================
+# INTERVENTION SEQUENCE + 3D MODEL
+# ============================================================
 with center:
     
     st.markdown("### 3D Getfert Model")
 
     components.iframe(
     "https://lelelit.github.io/Getfert-energy-dashboard/assets/index.html",
-    height=500,
-    scrolling=False
-)
-
-    st.markdown("### Demand vs Renewable Supply")
+    height=600,
+      width=1600,
+    scrolling=False)
 
 # ============================================================
 # FULL TABLE
 # ============================================================
 
-with st.expander("View all 27 scenarios"):
+with st.expander("View full 27-scenario table"):
     st.dataframe(df, use_container_width=True)
