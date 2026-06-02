@@ -296,12 +296,12 @@ with center:
         textposition="top center",
         showlegend=False,
         marker=dict(
-    size=7,
-    color=df["total_demand_gwh"],
-    colorscale="YlOrRd",
-    colorbar=dict(title="Demand<br>(GWh/yr)"),
-    opacity=0.88
-),
+            size=7,
+            color=df["total_demand_gwh"],
+            colorscale="YlOrRd",
+            colorbar=dict(title="Demand<br>(GWh/yr)"),
+            opacity=0.88
+        ),
         customdata=df[
             [
                 "population_state",
@@ -356,7 +356,11 @@ with center:
         margin=dict(l=0, r=0, b=0, t=15)
     )
 
-    st.plotly_chart(fig_cube, use_container_width=True, key="scenario_cube")
+    st.plotly_chart(
+        fig_cube,
+        use_container_width=True,
+        key="scenario_cube"
+    )
 
     chart_left, chart_right = st.columns(2)
 
@@ -394,7 +398,11 @@ with center:
             margin=dict(l=5, r=5, t=40, b=5)
         )
 
-        st.plotly_chart(fig_demand, use_container_width=True, key="demand_breakdown")
+        st.plotly_chart(
+            fig_demand,
+            use_container_width=True,
+            key="demand_breakdown"
+        )
 
     with chart_right:
         st.markdown("### Policy Supply Mix")
@@ -432,10 +440,15 @@ with center:
             margin=dict(l=5, r=5, t=40, b=5)
         )
 
-        st.plotly_chart(fig_supply, use_container_width=True, key="policy_supply_breakdown")
+        st.plotly_chart(
+            fig_supply,
+            use_container_width=True,
+            key="policy_supply_breakdown"
+        )
+
 
 # ============================================================
-# RIGHT PANEL — DYNAMIC KPI RESULTS
+# RIGHT PANEL — KPI RESULTS + NEIGHBOURHOOD CAPITAL TOKENS
 # ============================================================
 
 with right:
@@ -468,11 +481,95 @@ with right:
         f"{policy_coverage:.1f}%"
     )
 
-    st.markdown("---")
-    st.markdown("### Intervention impact on theLiving Environment")
+    # --------------------------------------------------------
+    # Neighbourhood Capital Balance — stays in right column
+    # --------------------------------------------------------
 
-    st.write(f"**Impact score:** {living_impact_score:.2f}")
-    st.write(f"**Impact class:** {living_class}")
+    st.markdown("---")
+    st.markdown("### Neighbourhood Capital Balance")
+
+    energy_capital = round(
+        roof_pct * 0.04 +
+        parking_pct * 0.02 +
+        wind_pct * 0.03 +
+        green_solar_pct * 0.01
+    )
+
+    environment_capital = round(
+        -(green_solar_pct * 0.03)
+    )
+
+    community_capital = round(
+        roof_pct * 0.01 +
+        parking_pct * 0.02 -
+        wind_pct * 0.01 -
+        green_solar_pct * 0.02
+    )
+
+    resilience_capital = round(
+        roof_pct * 0.02 +
+        parking_pct * 0.01 +
+        wind_pct * 0.03
+    )
+
+    def token_row(icon, title, score, token_icon, description):
+        sign = "+" if score > 0 else ""
+        tokens = token_icon * max(1, abs(score))
+
+        st.markdown(f"""
+        <div style="
+            background-color:#F8F9FA;
+            padding:10px;
+            border-radius:10px;
+            border:1px solid #E0E0E0;
+            margin-bottom:8px;
+        ">
+            <div style="font-size:15px; font-weight:700;">
+                {icon} {title}
+            </div>
+            <div style="font-size:16px; margin-top:3px;">
+                {tokens}
+            </div>
+            <div style="font-size:13px; font-weight:600;">
+                Score: {sign}{score}
+            </div>
+            <div style="font-size:11px; color:#666;">
+                {description}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    token_row(
+        "⚡",
+        "Energy Capital",
+        energy_capital,
+        "🟡",
+        "Local generation and self-sufficiency."
+    )
+
+    token_row(
+        "🌳",
+        "Environmental Capital",
+        environment_capital,
+        "🟢",
+        "Biodiversity, cooling and green-space protection."
+    )
+
+    token_row(
+        "👥",
+        "Community Capital",
+        community_capital,
+        "🔵",
+        "Health, comfort and public acceptance."
+    )
+
+    token_row(
+        "🛡",
+        "Resilience Capital",
+        resilience_capital,
+        "🟣",
+        "Energy security and future readiness."
+    )
 
 # ============================================================
 # RECOMMENDATION + INTERPRETATION
