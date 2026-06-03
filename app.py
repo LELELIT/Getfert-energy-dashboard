@@ -120,6 +120,18 @@ Decision Support Tool for Energy-Sufficient Neighbourhood Planning
 Test future population, electrification, and green-transformation scenarios and evaluate renewable-energy intervention pathways for Getfert 2046.
 </div>
 """, unsafe_allow_html=True)
+
+# ============================================================
+# INTERVENTION SEQUENCE + 3D MODEL
+# ============================================================
+    
+st.markdown("### 3D Getfert Model")
+
+components.iframe(
+    "https://lelelit.github.io/Getfert-energy-dashboard/assets/index.html",
+    height=600,
+      width=1600,
+    scrolling=False)
 # ============================================================
 # MAIN LAYOUT
 # ============================================================
@@ -283,7 +295,7 @@ else:
 # ============================================================
 
 with center:
-    st.markdown("### 27-Scenario Cube")
+    st.markdown("### Demand Scenario Cube")
 
     fig_cube = go.Figure()
 
@@ -467,12 +479,12 @@ with right:
     )
 
     st.metric(
-        "Policy supply",
+        "Supply interventions",
         f"{policy_total_supply:.2f} GWh/yr"
     )
 
     st.metric(
-        "Policy balance",
+        "Energy balance",
         f"{policy_energy_balance:.2f} GWh/yr"
     )
 
@@ -486,7 +498,7 @@ with right:
     # --------------------------------------------------------
 
     st.markdown("---")
-    st.markdown("### Neighbourhood Capital Balance")
+    st.markdown("### Interventions Impacts on the Neighbourhood Capitals")
 
     energy_capital = round(
         roof_pct * 0.04 +
@@ -574,12 +586,12 @@ with right:
 # ============================================================
 # RECOMMENDATION + INTERPRETATION
 # ============================================================
+with center:
+ st.markdown("---")
 
-st.markdown("---")
+ col_rec, col_interp = st.columns([1, 1])
 
-col_rec, col_interp = st.columns([1, 1])
-
-with col_rec:
+ with col_rec:
     st.markdown("### Policy Result")
 
     if policy_energy_balance >= 0:
@@ -589,7 +601,7 @@ with col_rec:
             f"This policy mix leaves a deficit of {abs(policy_energy_balance):.2f} GWh/yr."
         )
 
-with col_interp:
+ with col_interp:
     st.markdown("### Energy + Health Interpretation")
 
     if green_solar_pct > 0:
@@ -609,22 +621,10 @@ with col_interp:
             "Rooftop solar has the lowest spatial and health trade-off."
         )
 
-# ============================================================
-# INTERVENTION SEQUENCE + 3D MODEL
-# ============================================================
-with center:
-    
-    st.markdown("### 3D Getfert Model")
 
-    components.iframe(
-    "https://lelelit.github.io/Getfert-energy-dashboard/assets/index.html",
-    height=600,
-      width=1600,
-    scrolling=False)
 
 # ============================================================
 # FULL TABLE
 # ============================================================
-
 with st.expander("View full 27-scenario table"):
     st.dataframe(df, use_container_width=True)
